@@ -1,0 +1,2 @@
+cd D:\Code\C++\FL
+.venv\Scripts\Activate.ps1
