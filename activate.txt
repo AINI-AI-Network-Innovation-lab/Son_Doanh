@@ -1,2 +1,2 @@
-cd D:\Code\C++\FL
 .venv\Scripts\Activate.ps1
+flwr log <run_id> --show
