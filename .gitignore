@@ -1,3 +1,6 @@
 .venv
 LICENSE
 .clineignore
+__pycache__
+*.cpython-*.pyc
+/doc.md
