@@ -26,7 +26,7 @@ Triển khai thuật toán **FedDisco** kết hợp **MOON** trên nền tảng 
     - FedDisco đề xuất tính độ  lệch phân phối dữ liệu trên mỗi client  $d_k$ và dựa vào $d_k$ cùng với số mẫu dữ liệu client để cập nhật trọng số global tại server
     - Công thức định lượng độ lệch phân phối
         
-        $$d_k=||q_k-u||_2=\sqrt{\sum_{c=1}^{C}{q_{k,x}-\frac{1}{C}}}$$
+        $$d_k = \|q_k - u\|_2 = \sqrt{\sum_{c=1}^{C} \left( q_{k,c} - \frac{1}{C} \right)^2}$$
         
         $$q_{k,x}$$ là tỷ lệ mẫu cục bộ của các lớp
         
