@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fedadp"
+version = "1.0.0"
+description = "Federated Learning with Adaptive Weighting (FedAdp) on CIFAR-10 with Flower Next-gen API"
+license = {file = "LICENSE"}
+dependencies = [
+    "flwr[simulation]>=1.36.0",
+    "flwr-datasets[vision]>=0.6.1",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.flwr.app]
+publisher = "flwrlabs"
+fab-format-version = 1
+flwr-version-target = "1.36.0"
+
+[tool.flwr.app.components]
+serverapp = "source.server_app:app"
+clientapp = "source.client_app:app"
+
+[tool.flwr.app.config]
+# 1. Cấu hình cơ bản của vòng lặp FL
+num-server-rounds = 30           # Tổng số vòng huấn luyện toàn cục
+num-partitions = 10              # Tổng số client trong toàn mạng (chia dữ liệu Dirichlet non-IID)
+fraction-train = 1.0             # Tỷ lệ client tham gia train mỗi round
+fraction-evaluate = 1.0          # Tỷ lệ client tham gia đánh giá sau mỗi round
+local-epochs = 1                 # Số epoch tối đa mỗi round tại client
+learning-rate = 0.01             # Tốc độ học (learning rate) của optimizer SGD
+batch-size = 32                  # Kích thước mỗi batch dữ liệu
+save-model = false               # Có lưu trọng số mô hình cuối cùng ra file final_model.pt không
+
+# 2. Cấu hình đặc thù FedAdp
+decrease-speed = 1.0             # Tham số alpha trong hàm Gompertz của FedAdp (1.0 đến 5.0)
+random-steps = false             # Bật/tắt mô phỏng client mạnh/yếu (ngẫu nhiên số bước)
+min-steps-ratio = 0.2            # Tỷ lệ bước chạy tối thiểu khi random-steps = true
