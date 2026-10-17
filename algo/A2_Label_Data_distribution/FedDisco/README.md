@@ -24,27 +24,26 @@ Triển khai thuật toán **FedDisco** kết hợp **MOON** trên nền tảng 
 - FedDisco:
     - Vấn đề đặt ra: FedAVG,FedProx hay moon: Ở server đều gán trọng số dựa vào số lượng mẫu dữ liệu cục bộ: $w^{t+1}=\sum{p_k.F_k\{w\}}=\sum{n_k.F_k\{w\}}$. Do đó khi dữ liệu phân bố không đồng đều trên các nhãn vẫn gây ra hiện tượng client drift
     - FedDisco đề xuất tính độ  lệch phân phối dữ liệu trên mỗi client  $d_k$ và dựa vào $d_k$ cùng với số mẫu dữ liệu client để cập nhật trọng số global tại server
-    - Công thức định lượng độ lệch phân phối:
+    - Công thức định lượng độ lệch phân phối
         
-        $$d_k = \|q_k - u\|_2 = \sqrt{\sum_{c=1}^{C} \left(q_{k,c} - \frac{1}{C}\right)^2}$$
+        $$d_k=||q_k-u||_2=\sqrt{\sum_{c=1}^{C}{q_{k,x}-\frac{1}{C}}}$$
         
-        $q_{k,c}$ là tỷ lệ mẫu cục bộ của các lớp
+        $$q_{k,x}$$ là tỷ lệ mẫu cục bộ của các lớp
         
-        $\frac{1}{C}$ là phân phối mục tiêu toàn cục. Chỉ đúng khi dữ liệu ban đầu phân phối đều. Với các bài toán mà tập dữ liệu ban đầu không đều (như phân loại bệnh) thì phải tính lại tỉ lệ dữ liệu chuẩn.
+        $$\frac{1}{C}$$ là phân phối mục tiêu toàn cục. Chỉ đúng khi dữ liệu ban đầu phân phối đều. Với các bài toán mà tập dữ liệu ban đầu không đều(như phân loại bệnh) thì phải tính lại tỉ lệ dữ liệu chuẩn.
         
         $d_k$ nhằm đảm bảo bảo mật dữ liệu, $d_k$ nên được tính ở client rồi mới gửi lên server
         
-    - Hàm mục tiêu toàn cục: 
+    - Hàm mục tiêu toàn cục: $\min\limits_{t} \mathbb{E} \left[ \|\nabla F(w^{(t,0)})\|^2 \right]$
         
-        $$\min_{t} \mathbb{E} \left[ \|\nabla F(w^{(t,0)})\|^2 \right]$$
         
-    - $p_k \propto n_k - a \cdot d_k + b$
-        - Trọng số tỷ lệ với tỷ lệ mẫu $p_k$, độ lệch phân phối $d_k$ data và phần bù $b$
+    - $p_k \propto n_k - ad_k + b$
+        - Trọng số tỷ lệ với tỷ lệ mẫu $p_k$ , độ lệch phân phối $d_k$ data và phần bù b
         - Với client nhiều dữ liệu hơn thì được ưu tiên hơn
-        - Với độ lệch lớn → trừ đi, giảm độ ưu tiên
-    - Tính trọng số mới (Tại server): client gửi $d_k$, $w_{local}$ và $n_k$
+        - Với độ lệch lớn→ trừ đi , giảm độ ưu tiên
+    - Tính trọng số mới(Tại server): client gửi $d_k$, $w_{local}$ và $n_k$
         
-        $$p_k = \frac{\text{ReLU}(n_k - a \cdot d_k + b)}{\sum_{m \in S_i} \text{ReLU}(n_m - a \cdot d_m + b)}$$
+        $p_k=\frac{RELU(n_k-a.d_k+b)}{\sum_{m\in{S_i}} RELU(n_m-a.d_m+b)}$
         
         Với $n_k$ là tỷ lệ kích thước dữ liệu của client k
         
