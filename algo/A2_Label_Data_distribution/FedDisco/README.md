@@ -24,15 +24,10 @@ Triển khai thuật toán **FedDisco** kết hợp **MOON** trên nền tảng 
 - FedDisco:
     - Vấn đề đặt ra: FedAVG,FedProx hay moon: Ở server đều gán trọng số dựa vào số lượng mẫu dữ liệu cục bộ: $w^{t+1}=\sum{p_k.F_k\{w\}}=\sum{n_k.F_k\{w\}}$. Do đó khi dữ liệu phân bố không đồng đều trên các nhãn vẫn gây ra hiện tượng client drift
     - FedDisco đề xuất tính độ  lệch phân phối dữ liệu trên mỗi client  $d_k$ và dựa vào $d_k$ cùng với số mẫu dữ liệu client để cập nhật trọng số global tại server
-    - Công thức định lượng độ lệch phân phối:
-
-      $$
-      d_k = \|q_k - u\|_2 = \sqrt{\sum_{c=1}^{C} \left( q_{k,c} - \frac{1}{C} \right)^2}
-      $$
-
-      - $q_{k,c}$ là tỷ lệ mẫu cục bộ của các lớp.
-      - $\frac{1}{C}$ là phân phối mục tiêu toàn cục. Chỉ đúng khi dữ liệu ban đầu phân phối đều. Với các bài toán mà tập dữ liệu ban đầu không đều (như phân loại bệnh) thì phải tính lại tỉ lệ dữ liệu chuẩn.
-      - $d_k$ nhằm đảm bảo bảo mật dữ liệu, $d_k$ nên được tính ở client rồi mới gửi lên server.
+    - Công thức định lượng độ lệch phân phối: $d_k = \|q_k - u\|_2 = \sqrt{\sum_{c=1}^{C} \left( q_{k,c} - \frac{1}{C} \right)^2}$
+        - $q_{k,c}$ là tỷ lệ mẫu cục bộ của các lớp.
+        - $\frac{1}{C}$ là phân phối mục tiêu toàn cục. Chỉ đúng khi dữ liệu ban đầu phân phối đều. Với các bài toán mà tập dữ liệu ban đầu không đều (như phân loại bệnh) thì phải tính lại tỉ lệ dữ liệu chuẩn.
+        - $d_k$ nhằm đảm bảo bảo mật dữ liệu, $d_k$ nên được tính ở client rồi mới gửi lên server.
 
     - Hàm mục tiêu toàn cục: $\min\limits_{t} \mathbb{E} \left[ \|\nabla F(w^{(t,0)})\|^2 \right]$
 
@@ -41,20 +36,14 @@ Triển khai thuật toán **FedDisco** kết hợp **MOON** trên nền tảng 
         - Với client nhiều dữ liệu hơn thì được ưu tiên hơn.
         - Với độ lệch lớn → trừ đi, giảm độ ưu tiên.
 
-    - Tính trọng số mới (Tại server): client gửi $d_k$, $w_{local}$ và $n_k$:
+    - Tính trọng số mới (Tại server): $p_k = \frac{\text{ReLU}(n_k - a \cdot d_k + b)}{\sum_{m \in S_i} \text{ReLU}(n_m - a \cdot d_m + b)}$
+        - Client gửi $d_k$, $w_{local}$ và $n_k$.
+        - Với $n_k$ là tỷ lệ kích thước dữ liệu của client $k$.
+        - $d_k$ độ lệch phân phối của client $k$.
+        - $a > 0$ hyperparameter, điều chỉnh mức độ phạt đối với độ lệch.
+        - $b$ offset nhằm điều chỉnh nền trọng số.
+        
 
-      $$
-      p_k = \frac{\text{ReLU}(n_k - a \cdot d_k + b)}{\sum_{m \in S_i} \text{ReLU}(n_m - a \cdot d_m + b)}
-      $$
-        
-        Với $n_k$ là tỷ lệ kích thước dữ liệu của client k
-        
-        $d_k$ độ lệch phân phối của client k
-        
-        $a>0$ hyperparameter, điều chỉnh mức độ phạt đối với độ lệch
-        
-        $\mathcal{b}$ offset nhằm điều chỉnh nền trọng số
-        
     - Kết quả implement: Với 2 node, accuracy đạt 72%
 
 ---
