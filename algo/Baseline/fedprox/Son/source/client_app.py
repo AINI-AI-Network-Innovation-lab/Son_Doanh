@@ -45,7 +45,9 @@ def train(msg: Message, context: Context) -> Message:
     partition_id = context.node_config["partition-id"]      # ID của client (0, 1, 2, ...)
     num_partitions = context.node_config["num-partitions"]  # Tổng số client tham gia chia dữ liệu
     batch_size = context.run_config["batch-size"]           # Kích thước batch đọc từ pyproject.toml
-    trainloader, _ = load_data(partition_id, num_partitions, batch_size)
+    alpha = context.run_config.get("dataset-alpha", 0.5)
+    seed = context.run_config.get("seed", 42)
+    trainloader, _ = load_data(partition_id, num_partitions, batch_size, alpha=alpha, seed=seed)
 
     # 3. Lấy hệ số phạt proximal term (mu) của FedProx:
     # Ưu tiên lấy từ tin nhắn Server gửi xuống ('proximal-mu'), nếu không có thì lấy từ run_config, mặc định 0.01
@@ -98,7 +100,9 @@ def evaluate(msg: Message, context: Context) -> Message:
     partition_id = context.node_config["partition-id"]
     num_partitions = context.node_config["num-partitions"]
     batch_size = context.run_config["batch-size"]
-    _, valloader = load_data(partition_id, num_partitions, batch_size)
+    alpha = context.run_config.get("dataset-alpha", 0.5)
+    seed = context.run_config.get("seed", 42)
+    _, valloader = load_data(partition_id, num_partitions, batch_size, alpha=alpha, seed=seed)
 
     # 3. Chạy hàm kiểm thử test_fn (định nghĩa trong task.py)
     eval_loss, eval_acc = test_fn(

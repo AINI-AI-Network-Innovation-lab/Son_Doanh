@@ -53,8 +53,9 @@ def main(grid: Grid, context: Context) -> None:
     # 3. Khởi tạo chiến lược FedProx (Strategy)
     # - FedProx mở rộng từ FedAvg: tổng hợp trọng số theo trung bình có trọng số (weighted average).
     # - Đồng thời tự động chèn 'proximal_mu' vào cấu hình gửi xuống cho mỗi Client ở từng round.
+    fraction_train: float = context.run_config.get("fraction-train", 0.5)
     strategy = FedProx(
-        fraction_train=1.0,
+        fraction_train=fraction_train,
         fraction_evaluate=fraction_evaluate,
         proximal_mu=mu,
     )
@@ -98,7 +99,7 @@ def global_evaluate(server_round: int, arrays: ArrayRecord) -> MetricRecord:
     # Chạy hàm kiểm thử test() từ file task.py
     test_loss, test_acc = test(model, test_dataloader, device)
 
-    print(f"[Server Round {server_round}] Global Test Loss: {test_loss:.4f} - Global Test Acc: {test_acc:.4f}")
+    print(f"[Server Round {server_round}] Test Acc: {test_acc:.4f} | Test Loss: {test_loss:.4f}")
 
     # Đóng gói kết quả trả về cho Server lưu trữ / hiển thị
     return MetricRecord({"accuracy": test_acc, "loss": test_loss})

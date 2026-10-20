@@ -5,3 +5,6 @@ __pycache__
 *.cpython-*.pyc
 /doc.md
 *:Zone.Identifier*
+/README.md
+myalgo
+/myAlgo.md

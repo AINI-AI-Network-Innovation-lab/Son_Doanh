@@ -6,7 +6,6 @@ FedGSL (Group split Layers) : Giả sử mô hình CNN gồm 6 tầng tích ch�
 
 * FedASL (Adaptive split layers) : Tương tự GSL , ở mỗi đầu vòng, client nhật 1 mô hình hoàn chỉnh từ server và chạy forward backward đầy đủ trên tất cả tầng mạng. Nhưng ASL ko chia ngẫu nhiên các tầng thành p nhóm độc lập, mà ban đầu, ASL coi 6 tầng như 6 nhóm riêng biệt. Sau khi train xong, client k không upload ngay tầng tích chập nào, mà lấy từng tầng so với tầng tương ứng của model toàn cục nhận đầu vòng để tính số biến động bằng chuẩn euclid, với $l$ là số hiệu layer
 
-
 $$
 c_{l,k}^t = \Vert{}w_{l,k}^t - w_{l,k}^{t-1}\Vert{}
 $$
@@ -47,7 +46,7 @@ $$
 \beta^t = \max\left(\beta_{min}, \beta_0^{\lfloor \frac{t}{s} \rfloor}\right)
 $$
 
-Với $\beta _0$ là hệ số suy giảm xuất phát ban đầu, $s$ là chu kì bước nhảy suy giảm, và $\beta _{min}$ là ngưỡng sàn tối thiểu 
+Với $\beta _0$ là hệ số suy giảm xuất phát ban đầu, $s$ là chu kì bước nhảy suy giảm, và $\beta _{min}$ là ngưỡng sàn tối thiểu
 
 với công thức cập nhật trọng số tầng $l$ mới :
 
@@ -56,3 +55,14 @@ w_l^t= \beta ^tw^{temp}_l + (1-\beta ^t)w_l^{t-1}
 $$
 
 Sau đó lấy trung bình bộ phân loại từ tất cả thiết bị tham gia vòng, ghép nối lại và gửi lại client
+
+Mở rộng : 
+
+Như vậy, đầu ra tại mỗi vòng giao tiếp có thể biểu diễn dưới dạng ma trận 2 chiều :
+
+
+$$
+M^0 = \begin{matrix} \text{Client 1:} & [0.50, & 0.00, & 0.333] \\ \text{Client 2:} & [0.50, & 0.50, & 0.333] \\ \text{Client 3:} & [0.00, & 0.50, & 0.333] \end{matrix}
+$$
+
+Với hàng i , cột j là tỉ lệ đóng góp của client i vào layer thứ j, hoặc nén thành 1 chiều bằng cách nhân với 1 ma trận tỉ lệ quan trọng của layer

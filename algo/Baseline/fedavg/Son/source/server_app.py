@@ -16,18 +16,16 @@ def main(grid: Grid, context: Context) -> None:
     """Main entry point for the ServerApp."""
 
     # Read run config
-    fraction_evaluate: float = context.run_config["fraction-evaluate"]
-    num_rounds: int = context.run_config["num-server-rounds"]
-    lr: float = context.run_config["learning-rate"]
+    fraction_train: float = context.run_config.get("fraction-train", 0.5)
+    fraction_evaluate: float = context.run_config.get("fraction-evaluate", 1.0)
+    num_rounds: int = context.run_config.get("num-server-rounds", 50)
+    lr: float = context.run_config.get("learning-rate", 0.05)
 
     # Load global model
     global_model = Net()
     arrays = ArrayRecord(global_model.state_dict())
 
-    # Initialize FedAvg strategy
-    # Cách Server nhận, mở gói, tổng hợp và đóng gói lại gửi cho Client nằm ngầm bên trong thuật toán này.
-    # Class FedAvg sẽ tự động đọc các ArrayRecord từ Client, dịch ra Numpy, tính trung bình, và tạo ra một Record mới.
-    strategy = FedAvg(fraction_evaluate=fraction_evaluate)
+    strategy = FedAvg(fraction_train=fraction_train, fraction_evaluate=fraction_evaluate)
 
     # Start strategy, run FedAvg for `num_rounds`
     result = strategy.start(
@@ -38,7 +36,7 @@ def main(grid: Grid, context: Context) -> None:
         evaluate_fn=global_evaluate,
     )
 
-    if context.run_config["save-model"]:
+    if context.run_config.get("save-model", False):
         # Save final model to disk
         print("\nSaving final model to disk...")
         state_dict = result.arrays.to_torch_state_dict()
@@ -59,6 +57,7 @@ def global_evaluate(server_round: int, arrays: ArrayRecord) -> MetricRecord:
 
     # Evaluate the global model on the test set
     test_loss, test_acc = test(model, test_dataloader, device)
+    print(f"[Server Round {server_round}] Test Acc: {test_acc:.4f} | Test Loss: {test_loss:.4f}")
 
     # Return the evaluation metrics
     return MetricRecord({"accuracy": test_acc, "loss": test_loss})
