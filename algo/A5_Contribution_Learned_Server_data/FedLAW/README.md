@@ -33,7 +33,7 @@ $\psi$ : đánh giá đóng góp
 
 $\xi$ : phân bổ trọng số
 
-Giả sử hệ thống có tập n client, ở mỗi đầu vòng giao tiếp t, client i nhận mô hình $w^{t-1}$ từ server và chạy SGD đầy đủ trên toàn bộ mạng với tập dữ liệu cục bộ $D_i$ để thu được $w_i^t$ và gửi toàn bộ lên server. Vector biến động của client i được tính bằng công thức : 
+Giả sử hệ thống có tập n client, ở mỗi đầu vòng giao tiếp t, client i nhận mô hình $w^{t-1}$ từ server và chạy SGD đầy đủ trên toàn bộ mạng với tập dữ liệu cục bộ $D_i$ để thu được $w_i^t$ và gửi toàn bộ lên server. Vector biến động của client i được tính bằng công thức :
 
 $$
 \delta_i^t = w_i^t - w_i^{t-1}
@@ -67,7 +67,7 @@ $$
 v^t(C) = \sum_{i, j \in C} f(dist(\delta_i^t, \delta_j^t))
 $$
 
-Và  : $\mathcal{C}$ : tập tất cả client  
+Và  : $\mathcal{C}$ : tập tất cả client
 
 Như vậy tổng điểm số của client i so với tất cả client còn lại được tính bởi công thức :
 
@@ -75,9 +75,9 @@ $$
 r_i^t = \phi_i^t(v^t) = \sum_{j \in \mathcal{C}} f(dist(\delta_i^t, \delta_j^t))
 $$
 
-Shapely value của client i theo công thức tính giá trị nhóm v(S) cho ra mức đô đóng góp của client vào mô hình chung tại vòng giao tiếp t
+Shapely value của client i theo công thức tính giá trị nhóm v(S) cho ra mức đô đóng góp của client vào giá trị nhóm tại vòng giao tiếp t -> tương đương với đóng góp của i tại vòng giao tiếp t
 
-Sau đó, server làm mượt đóng góp của client i với đóng góp tích lũy từ vòng trước 
+Sau đó, server làm mượt đóng góp của client i với đóng góp tích lũy từ vòng trước
 
 $$
 \hat{r}_i^t = \frac{1}{2}r_i^t + \frac{1}{2}\hat{r}_i^{t-1}
@@ -90,3 +90,9 @@ q_i^t = \frac{\hat{r}_i^t}{\sum_{k=1}^n \hat{r}_k^t}
 $$
 
 Thu được 1 vector trọng số client
+
+Lý do chọn hàm tính giá trị nhóm như vậy : *Nếu các client học từ dữ liệu thật cùng một bài toán, hướng gradient (độ thay đổi - dùng để tính điểm giữa 2 client) thực sự sẽ hội tụ về một chỗ (đồng nghĩa với việc độ dời tương đương, vì tại đầu mỗi vòng thì mọi client đều bắt đầu tại 1 chỗ); ai đi lệch ra ngoài là nhiễu (outlier)*<sup></sup>. Do đó, **độ đồng thuận nội bộ của nhóm** (giá trị nhóm) được dùng làm thước đo thay thế (proxy) cho **chất lượng dữ liệu của nhóm**, và mức độ đóng góp vào giá trị nhóm ~ trọng số của client , Vì cập nhật của model toàn cục là tổng hợp từ tất cả các client
+
+($\delta^t = \sum q_i^t \delta_i^t$)
+
+nên một client có hướng cập nhật $\delta_i^t$ đồng thuận cao với đại đa số các client khác (tức đóng góp $r_i^t$ lớn) thì cũng chính là client đang đẩy model toàn cục đi theo hướng tối ưu đúng đắn nhất<sup></sup><sup></sup>
