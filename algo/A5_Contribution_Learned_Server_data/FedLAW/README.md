@@ -95,4 +95,4 @@ Lý do chọn hàm tính giá trị nhóm như vậy : *Nếu các client học 
 
 ($\delta^t = \sum q_i^t \delta_i^t$)
 
-nên một client có hướng cập nhật $\delta_i^t$ đồng thuận cao với đại đa số các client khác (tức đóng góp $r_i^t$ lớn) thì cũng chính là client đang đẩy model toàn cục đi theo hướng tối ưu đúng đắn nhất<sup></sup><sup></sup>
+nên một client có hướng cập nhật $\delta_i^t$ đồng thuận cao với đại đa số các client khác (tức đóng góp $r_i^t$ lớn) thì cũng chính là client đang đẩy model toàn cục đi theo hướng tối ưu đúng đắn nhất<sup></sup>
