@@ -30,7 +30,7 @@ $$
 
 Để tính độ tương đồng nội bộ trong client A : $\sum_{i \neq j} k(x_i, x_j)$ với $x_i$ , $x_j$ là các số trong cùng client model, nếu x_i khác x_j nhiều -> hiệu lớn -> $k(x_i, x_j)$ rất nhỏ và ngược lại
 
-Để tính độ tương đồng chéo giữa 2 client : 
+Để tính độ tương đồng chéo giữa 2 client :
 
 $$
 \sum k(x_i, y_j)
@@ -40,10 +40,48 @@ Nếu điểm tương đồng của 2 client cao -> 2 client đang có xu hướ
 
 Sắp xếp các bộ trọng số theo chỉ số độ lệch của các client từ nhỏ đến lớn, các client có chỉ số độ lệch ở mức trung bình thì giữ lại, nếu chỉ số độ lệch rất cao -> đánh dấu đáng ngờ $W_{s1}$, $W_{s2}$,...
 
-Để không bị nhầm lẫn cảm tính, kiểm định 
+Để không bị nhầm lẫn cảm tính, kiểm định
 
 $$
 SKNQ = \frac{\vert W_{s1} - W_{s2} \vert}{W_{\max} - W_{\min}}
 $$
 
-Với W_max là mô hình có chỉ số độ lệch cao nhất, W_min là thấp nhất, $\vert W_{s1} - W_{s2} \vert$ : khoảng cách giữa các chỉ số độ lệch đáng ngờ, nếu SKNQ > 0.5 -> loại bỏ (hiệu quả nếu W_s1 và s2 tương phản nhau, chứ nếu cùng có chỉ số độ lệch cao nhưng độ tương đồng chéo lại tương đương thì k giải quyết được
+Với W_max là mô hình có chỉ số độ lệch cao nhất, W_min là thấp nhất, $\vert W_{s1} - W_{s2} \vert$ : khoảng cách giữa các chỉ số độ lệch đáng ngờ, nếu SKNQ > 0.5 -> loại bỏ cả 2, không cho đóng góp vào round hiện tại (hiệu quả nếu W_s1 và s2 tương phản nhau (đám mây nằm xa nhau), chứ nếu cùng có chỉ số độ lệch cao nhưng độ tương đồng chéo lại tương đương thì k giải quyết được
+
+Sau đó, tính toán trọng số của các client đóng góp với pp Entropy:
+
+B1 : Chuẩn hóa giá trị tham số của mô hình cục bộ 
+
+$$
+Y_i = \frac{W_i - W_{min}}{W_{max} - W_{min}}
+$$
+
+B2 : Tính tỉ trọng của từng client
+
+$$
+p_i = \frac{Y_i}{\sum_{i=1}^{n} Y_i}
+$$
+
+B3 : Tính entropy $E_i$ cho từng client
+
+$$
+E_i = -\frac{1}{\ln n}\sum_{i=1}^{n} p_i \ln p_i
+$$
+
+Trong đó, $-\sum_{i=1}^n p_i \ln p_i$ là entropy với n đối tượng và $p_i$ là xác suất đối tượng i xuất hiện, $\ln n$ : giá trị entropy cực đại của 1 hệ thống gồm n đối tượng -> chuẩn hóa về khoảng [0, 1]
+
+B4 :Xác định hệ số trọng số $\lambda _i$ cho mỗi client
+
+$$
+\lambda_i = \frac{1 - E_i}{K - \sum E_i} \quad (i = 1, 2, ..., K)
+$$
+
+Tức là, client nào có độ hỗn loạn thấp hơn => chứa nhiều thông tin hữu ích và ổn định hơn, xứng đán được gán trọng số cao hơn, với $1-E_i$ : mức độ hữu ích của thông tin, Entropy càng nhỏ -> càng hữu ích
+
+$K-\sum E_i$ : tổng tất cả các tử số của K client
+
+Tổng hợp mô hình mới với công thức :
+
+$$
+w_{t+1} = \sum_{k=1}^{K}\frac{n_k}{n}(\lambda_k w_{t+1}^{(k)})
+$$
