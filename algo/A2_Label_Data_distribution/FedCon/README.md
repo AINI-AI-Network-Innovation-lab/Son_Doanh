@@ -1,5 +1,9 @@
 FedCon xây dựng cơ chế tổng hợp động dựa trên đánh giá đóng góp của client, tín hiệu là khối lượng dữ liệu, chất lượng phân phối dữ liệu, giá trị Shapley và độ tương đồng mô hình (giống FedLaw + FedMMD)
 
+FedCon yêu cầu phải biết trước phân phối của dữ liệu toàn cục (tức là phân phối của CIFAR-10, 100, ...) trước khi chia : đây là giả định mạnh, ko thực sự tốt
+
+Ngoài ra, còn cần Proxy validation data để tính Shapley bằng lấy mẫu Monte Carlo
+
 B1 : Đánh giá độ lệch phân phối dữ liệu
 
 Ở những vòng giao tiếp đầu tiên, server chưa thể đánh giá chính xác đóng góp qua mô hình. FedCon tính toán độ lệch chất lượng dữ liệu của từng client so với pp toàn cục thông qua khoảng cách Kullback-leibler (KL Divergence), với i là chỉ số client, k là chỉ số nhãn
@@ -36,7 +40,7 @@ Trọng số khởi tạo của client i tỷ lệ thuận với dung lượng d
 
 B3 : Đánh giá đóng góp thực tế bằng Shapley value qua lấy mẫu Monte Carlo ($\phi_i$)
 
-Shapley value gốc cho client i : 
+Shapley value gốc cho client i :
 
 $$
 \phi_i = \sum_{S \subseteq \mathcal{N} \setminus \{i\}} \frac{\vert{}S\vert{}!(N-\vert{}S\vert{}-1)!}{N!} [F(S \cup \{i\}) - F(S)]
@@ -44,19 +48,21 @@ $$
 
 Với N là số client, S là tập hợp cient ko chứa i
 
-Xấp xỉ Shapley value qua lấy mẫu Monte Carlo để giảm độ phức tạp tính toán
+Tác giả tính hàm đóng góp biên như sau : Mô hình cục bộ của các client được gộp lại thành 1 mô hình toàn cục (bằng trung bình), được đánh giá độ chính xác trên 1 tập valid tại server cho 2 mô hình $S$ và $S \cup \{i\}$ -> hàm đóng góp biên = độ lệch accuracy trên tập valid này
+
+Xấp xỉ Shapley value qua lấy mẫu Monte Carlo để giảm độ phức tạp tính toán : 
 
 $$
 \phi_i = \frac{1}{M} \sum_{m=1}^M [F(S_m \cup \{i\}) - F(S_m)]
 $$
 
-Thay vì duyệt mọi tổ hợp với $(O(2^n))$, lấy mẫu ngâu nhiên M lần các tập con $S_m$, 
+Thay vì duyệt mọi tổ hợp với $(O(2^n))$, lấy mẫu ngâu nhiên M lần các tập con $S_m$,
 
 $[F(S_m \cup \{i\}) - F(S\_m)]$ đo lường mức độ đóng góp của i bằng độ chênh lệch giá trị nhóm trước và sau khi i vào
 
 B4 : Tối ưu hóa trọng số qua độ tương đồng Cosine
 
-Độ tương đồng cosine giữa 2 mô hình client i và j ($\theta _i$ và $\theta _j$) 
+Độ tương đồng cosine giữa 2 mô hình client i và j ($\theta _i$ và $\theta _j$)
 
 $$
 \cos(\theta_i, \theta_g) = \frac{\theta_i \cdot \theta_g}{\Vert{}\theta_i\Vert{} \Vert{}\theta_g\Vert{}}
