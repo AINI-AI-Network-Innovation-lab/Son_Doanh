@@ -12,8 +12,6 @@
 - $\alpha$: hằng số nguyên dương điều chỉnh tốc độ giảm của hàm $f$
 - $\nu$ (nu), $\epsilon$ (epsilon): 2 hàm số trong hàm phi tuyến $f$, với $\nu$: ngưỡng góc nhỏ mà tại đó hàm $f$ tiến về $\alpha$, tỉ lệ thuận với $\alpha$ và $\epsilon$: giới hạn của hàm $f$ khi góc tiến đến $\frac{\pi}{2}$, tỉ lệ nghịch với $\alpha$
 
----
-
 ### Ý tưởng
 
 Trong FedAvg, client được gán trọng số phụ thuộc vào số mẫu tại từng thiết bị (tốt cho IID, không tốt cho Non-IID) $\rightarrow$ FedAdp nhận diện mối liên hệ giữa phân phối nhãn trên thiết bị và mức độ đóng góp của thiết bị đó, bằng cách:
@@ -33,14 +31,12 @@ $$
 
 Khi góc làm mượt $\tilde{\theta}_i(t)$ tăng lên (tức là thiết bị có dữ liệu càng bị lệch pha, hướng gradient càng đi lệch so với mục tiêu chung), giá trị đầu ra của hàm $f$ sẽ giảm xuống. Ngược lại, khi góc $\tilde{\theta}_i(t)$ rất nhỏ (thiết bị đóng góp tích cực, đi đúng hướng), hàm $f$ sẽ trả về giá trị cao tối đa xấp xỉ bằng $\alpha$.
 
----
-
 ### Quy trình
 
 1. Client nhận được global model $w^t$, train 1 số step, thu được $w_i^t$ là model sau vòng giao tiếp $t$ tại client $i$.
 2. Tính $\Delta w = w_i^t - w^t$, rồi gửi cho server.
 3. Server chia cho $-\eta$ (learning rate), thu được gradient của hàm loss cục bộ: $\nabla F_i(w(t))$ (do $w_i^t = w^t - \eta \nabla F_i(w_i^t)$).
-4. Tính góc tức thời $\theta_i^t$ của client $i$ với global sau vòng giao tiếp $t$ để xem độ đóng góp của client $i$ vào gradient toàn cục.
+4. Tính góc tức thời $\theta_i^t$ của gradient client $i$ với gradient global (trung bình cộng gradient) sau vòng giao tiếp $t$ để xem độ đóng góp của client $i$ vào gradient toàn cục.
 5. Tính góc làm mượt của client với công thức (1) và đưa qua hàm $f$ phi tuyến để tính mức độ đóng góp của client $i$ tại vòng lặp $t$ này, với kết quả là điểm dành cho client $i$.
 6. Sau khi đi qua hàm này, kết quả được đưa qua hàm softmax để chuẩn hóa thành trọng số cho từng client.
 7. Server tổng hợp ra model mới từ bộ trọng số này với công thức:
