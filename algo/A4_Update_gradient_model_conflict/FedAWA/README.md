@@ -27,9 +27,9 @@ $$
 \boldsymbol{\lambda}^t = \arg\min_{\boldsymbol{\lambda}} \sum_{k=1}^K \lambda_k \|\tau_k^t - \tau_g^t\|_2 + d\left( \sum_{k=1}^K \lambda_k w_k^t, \; w_g^t \right)
 $$
 
-- **Biểu thức đầu ($\sum \lambda_k \|\tau_k^t - \tau_g^t\|_2$)**: Khoảng cách của global vector so với client vector, nhân với độ ảnh hưởng của mỗi client $\to$ Client nào có hướng cập nhật gần với hướng chung sẽ được gán trọng số cao hơn, client lệch hướng bị phạt giảm trọng số.
-- **Biểu thức sau ($d(\sum \lambda_k w_k^t, w_g^t)$)**: Thành phần regularization giữ ổn định, tránh việc mô hình sau cập nhật bị trôi lệch quá xa so với global model cũ.
-- **Hàm khoảng cách**: $d(a, b) = 1 - \text{cosine\_similarity}(a, b)$.
+- **Biểu thức đầu** ($`\sum_{k} \lambda_{k} \Vert \tau_{k}^{t} - \tau_{g}^{t} \Vert_{2}`$): Khoảng cách của global vector so với client vector, nhân với độ ảnh hưởng của mỗi client $`\to`$ Client nào có hướng cập nhật gần với hướng chung sẽ được gán trọng số cao hơn, client lệch hướng bị phạt giảm trọng số.
+- **Biểu thức sau** ($`d\left(\sum_{k} \lambda_{k} w_{k}^{t},\; w_{g}^{t}\right)`$): Thành phần regularization giữ ổn định, tránh việc mô hình sau cập nhật bị trôi lệch quá xa so với global model cũ.
+- **Hàm khoảng cách**: $`d(a, b) = 1 - \cos(a, b) = 1 - \dfrac{a \cdot b}{\Vert a \Vert \, \Vert b \Vert}`$.
 
 **3. Tổng hợp mô hình toàn cục:**
 

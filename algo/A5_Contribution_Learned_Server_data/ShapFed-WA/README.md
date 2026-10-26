@@ -8,7 +8,7 @@
 ### Ý tưởng cốt lõi
 
 - Ước lượng mức đóng góp của từng client lấy ý tưởng từ **Shapley Value** trong lý thuyết trò chơi hợp tác.
-- Khắc phục hạn chế của Shapley truyền thống (đòi hỏi tập validation data trên server và bùng nổ tổ hợp $\mathcal{O}(2^n)$) và CGSV (tính cosine trên toàn bộ mạng bị nhiễu bởi các tầng feature extractor): **ShapFed chỉ trích xuất tầng phân loại cuối cùng ($\hat{w}$)** để đo đạc đóng góp riêng cho từng class (**CSSV - Class-Specific Shapley Values**).
+- Khắc phục hạn chế của Shapley truyền thống (đòi hỏi tập validation data trên server và bùng nổ tổ hợp $\mathcal{O}(2^n)$ và CGSV (tính cosine trên toàn bộ mạng bị nhiễu bởi các tầng feature extractor): **ShapFed chỉ trích xuất tầng phân loại cuối cùng ($\hat{w}$)** để đo đạc đóng góp riêng cho từng class (**CSSV - Class-Specific Shapley Values**).
 
 ---
 
@@ -31,7 +31,7 @@ $$
 **2. Làm mượt ma trận đóng góp qua các round (tránh nhiễu đột ngột):**
 
 - $\Gamma^{(1)} = \tilde{\Gamma}^{(1)}$
-- $\Gamma^{(t)} = \mu \Gamma^{(t-1)} + (1 - \mu) \tilde{\Gamma}^{(t)}$ (với $\mu \in [0, 1)$)
+- $\Gamma^{(t)} = \mu \Gamma^{(t-1)} + (1 - \mu) \tilde{\Gamma}^{(t)}$ (với $\mu \in [0, 1)$ )
 
 **3. Chuẩn hóa điểm đóng góp & Tính trọng số client:**
 
