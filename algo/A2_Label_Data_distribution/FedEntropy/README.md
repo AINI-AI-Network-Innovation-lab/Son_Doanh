@@ -18,6 +18,32 @@ Install Flower:
 pip install flwr
 ```
 
+## 💡 Tổng quan thuật toán (Algorithm Overview)
+
+- FedEntropy/Performance
+    - FedEntropy
+        - Entropy thể hiện độ hỗn loạn/phân tán của dữ liệu giữa các lớp
+            - $H_k = -\sum_{c=1}^C p_{k,c} \log{p_{k,c}}$ với $p_{k,c}$ là tỷ lệ mẫu thuộc lớp $c$ tại client $k$
+            - Entropy càng cao thì càng cân bằng
+            - $H_k^{norm} = \frac{H_k}{\log{C}}$ với $C$ là tổng số lớp của bài toán
+            - $H_k^{norm}$ gần 0 thì phân phối mất cân bằng, gần 1 thì đồng đều giữa các lớp
+        - Cập nhật trọng số server side:
+            - $\alpha_k^{\text{Entropy}} = \frac{H_k^{\text{norm}} n_k}{\sum_{j=1}^K H_j^{\text{norm}} n_j}$: Cân bằng giữa độ phân tán dữ liệu và số mẫu của client
+            - $w_{t+1} = \sum_{k=1}^K \alpha_k^{\text{Entropy}} w_{k, t+1}$
+    - FedPerformance: Giải quyết vấn đề: entropy giống nhau có thể cho ra chất lượng sai lệch do chất lượng của mẫu (dữ liệu phân phối đều nhưng có ảnh nhiễu, có ảnh nét)
+        - Sử dụng training loss $\mathcal{L}_k$ để đánh giá hiệu suất
+        - $P_k = 1 - \frac{\mathcal{L}_k}{\sum_{j=1}^K \mathcal{L}_j + \epsilon}$
+            - $\mathcal{L}_k$: training loss của client $k$ sau local training
+            - $\epsilon$: hằng số để tránh chia cho 0
+            - $P_k$: Điểm hiệu suất tương đối của client
+            - Lấy $1 - \text{biểu thức}$ để khi loss nhỏ thì điểm hiệu suất sẽ cao hơn
+        - Công thức tổng hợp trọng số ở server: $\alpha_k^{\text{Performance}} = \frac{P_k n_k}{\sum_j P_j n_j}$
+        - Vấn đề: Hiệu suất loss ở local chỉ đánh giá trên tập dữ liệu của client, do đó với bài toán non-iid không hữu dụng lắm: thực tế chỉ ra nó ngang ngửa với fedavg :))
+    - FedEntropyPerformance
+        - Hybrid mode:
+        - $\alpha_k^{E+P} = \frac{P_k H_k^{\text{norm}} n_k}{\sum_j P_j H_j^{\text{norm}} n_j}$
+        - Thực tế: Chỉ lệch 0.3% so với FedEntropy
+    - Kết luận: Nên dùng FedEntropy vì hiệu quả đủ tốt, không mất thêm chi phí truyền thông(không phải gửi L, chỉ gửi entropy lên sever).
 Fetch the app:
 
 ```shell
