@@ -1,27 +1,22 @@
 ---
-tags: [federated-learning, label-skew, non-iid, flower, entropy, scaffold]
-dataset: [cifar10]
-framework: [pytorch, flwr]
+tags: [quickstart]
+dataset: []
+framework: [numpy]
 ---
 
-# FedEntropy: Mitigating Data Heterogeneity in Federated Learning via Entropy-Weighted Aggregation
+# Federated Learning with NumPy and Flower (Demo)
 
-Triển khai thuật toán **FedEntropy** kết hợp biến kiểm soát **SCAFFOLD** trên nền tảng **Flower** (PyTorch) nhằm giải quyết thách thức không đồng nhất phân phối dữ liệu nhãn (Data Heterogeneity / Non-IID).
+This example of Flower uses a dummy `NumPy` model as well as dummy training and evaluation steps in the `ClientApp` to showcase the core functionality of Flower apps. This app does not use a dataset.
 
----
+## Set up the project
 
-## 📄 Nguồn bài báo & Tài liệu tham khảo (Paper Reference)
+### Fetch the app
 
-- **Tên bài báo**: *Mitigating data heterogeneity in federated learning via entropy-weighted aggregation*
-- **Tác giả**: Asier Zulueta-Doalto, Ekaitz Zulueta, Mikel Zulueta-Perez, Jose Manuel Lopez-Guede
-- **Tạp chí**: *Neurocomputing*, Volume 700, Article 134398
-- **DOI**: [10.1016/j.neucom.2026.134398](https://doi.org/10.1016/j.neucom.2026.134398)
-- **ScienceDirect Link**: [ScienceDirect Article](https://www.sciencedirect.com/science/article/pii/S0925231226134398)
-- **Tài liệu nền tảng liên quan (MEJ Algorithm)**:
-  - *FedEntropy: Efficient Device Grouping for Federated Learning Using Maximum Entropy Judgment*
-  - **arXiv**: [https://arxiv.org/abs/2010.15555](https://arxiv.org/abs/2010.15555)
+Install Flower:
 
----
+```shell
+pip install flwr
+```
 
 ## 💡 Tổng quan thuật toán (Algorithm Overview)
 
@@ -49,47 +44,55 @@ Triển khai thuật toán **FedEntropy** kết hợp biến kiểm soát **SCAF
         - $\alpha_k^{E+P} = \frac{P_k H_k^{\text{norm}} n_k}{\sum_j P_j H_j^{\text{norm}} n_j}$
         - Thực tế: Chỉ lệch 0.3% so với FedEntropy
     - Kết luận: Nên dùng FedEntropy vì hiệu quả đủ tốt, không mất thêm chi phí truyền thông(không phải gửi L, chỉ gửi entropy lên sever).
+Fetch the app:
 
----
-
-## 📁 Cấu trúc thư mục
-
-```text
-FedEntropy/
-├── __init__.py           # Package init
-├── custom_strategy.py    # Chiến lược ScaffoldFedEntropy (MEJ filtering & Entropy-weighted aggregation)
-├── client_app.py         # Huấn luyện cục bộ Client (SCAFFOLD control variates & tính soft labels)
-├── server_app.py         # Khởi tạo ServerApp và cấu hình ScaffoldFedEntropy Strategy
-├── task.py               # Mạng CNN, Dirichlet partitioner, Shannon entropy & data loaders
-├── pyproject.toml        # Cấu hình siêu tham số và phụ thuộc dự án Flower
-├── LICENSE               # Giấy phép mã nguồn
-└── README.md             # Tài liệu hướng dẫn và nguồn bài báo
+```shell
+flwr new @flwrlabs/demo
 ```
 
----
+```shell
+demo
+├── quickstart_numpy
+│   ├── __init__.py
+│   ├── client_app.py   # Defines your ClientApp
+│   ├── server_app.py   # Defines your ServerApp
+│   └── task.py         # Defines model creation
+├── pyproject.toml      # Project metadata like dependencies and configs
+└── README.md
+```
 
-## 🚀 Hướng dẫn cài đặt & Chạy thực nghiệm
+### Install dependencies and project
 
-### 1. Cài đặt môi trường & dependencies
-Cài đặt Flower cùng các gói phụ thuộc cần thiết:
+Install the dependencies defined in `pyproject.toml` as well as the `quickstart_numpy` package.
+
 ```bash
-cd /home/administrator/Son_Doanh/algo/A2_Label_Data_distribution/FedEntropy
 pip install -e .
 ```
 
-### 2. Cấu hình siêu tham số (`pyproject.toml`)
-Các tham số có thể điều chỉnh trong phần `[tool.flwr.app.config]`:
-- `num-server-rounds`: Số vòng liên kết (mặc định: `15`).
-- `fraction-evaluate`: Tỷ lệ client tham gia đánh giá (mặc định: `0.5`).
-- `learning-rate`: Tốc độ học cục bộ $\eta_l$ (mặc định: `0.01`).
-- `batch-size`: Kích thước batch (mặc định: `32`).
-- `local-epochs`: Số epoch huấn luyện cục bộ (mặc định: `2`).
-- `server-lr`: Tốc độ học phía server của SCAFFOLD (mặc định: `1.0`).
-- `entropy-gamma`: Hệ số lũy thừa entropy $\gamma$ cho trọng số (mặc định: `1.0`).
-- `use-mej-filter`: Bật/tắt cơ chế lọc Maximum Entropy Judgment (`true`/`false`).
+> **Tip:** Your `pyproject.toml` file can define more than just the dependencies of your Flower app. You can also use it to specify hyperparameters for your runs and control which Flower Runtime is used. By default, it uses the Simulation Runtime, but you can switch to the Deployment Runtime when needed.
+> Learn more in the [TOML configuration guide](https://flower.ai/docs/framework/how-to-configure-pyproject-toml.html).
 
-### 3. Chạy mô phỏng (Simulation)
-Khởi chạy thử nghiệm học liên kết với Flower Simulation Engine:
+## Run with the Simulation Engine
+
+In the `quickstart-numpy` directory, use `flwr run` to run a local simulation:
+
 ```bash
 flwr run .
 ```
+
+Refer to the [How to Run Simulations](https://flower.ai/docs/framework/how-to-run-simulations.html) guide in the documentation for advice on how to optimize your simulations.
+
+## Run with the Deployment Engine
+
+Follow this [how-to guide](https://flower.ai/docs/framework/how-to-run-flower-with-deployment-engine.html) to run the same app in this example but with Flower's Deployment Engine. After that, you might be interested in setting up [secure TLS-enabled communications](https://flower.ai/docs/framework/how-to-enable-tls-connections.html) and [SuperNode authentication](https://flower.ai/docs/framework/how-to-authenticate-supernodes.html) in your federation.
+
+You can run Flower on Docker too! Check out the [Flower with Docker](https://flower.ai/docs/framework/docker/index.html) documentation.
+
+## Resources
+
+- Flower website: [flower.ai](https://flower.ai/)
+- Check the documentation: [flower.ai/docs](https://flower.ai/docs/)
+- Give Flower a ⭐️ on GitHub: [GitHub](https://github.com/adap/flower)
+- Join the Flower community!
+  - [Flower Slack](https://flower.ai/join-slack/)
+  - [Flower Discuss](https://discuss.flower.ai/)
