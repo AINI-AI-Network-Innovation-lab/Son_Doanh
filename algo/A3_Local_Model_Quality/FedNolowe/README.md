@@ -14,26 +14,36 @@
 
 ### Các công thức chính
 
-1. **Chuẩn hóa L1 tổn thất 2 bước (Two-Stage L1 Normalization)**:
+**1. Chuẩn hóa L1 tổn thất 2 bước (Two-Stage L1 Normalization):**
 
-   $$
-   \alpha_k^t = \frac{1 - \tilde{L}_k^t}{\sum_{j \in S^t} (1 - \tilde{L}_j^t)} \quad \text{với} \quad \tilde{L}_k^t = \frac{L_k^t}{\sum_{j \in S^t} L_j^t}
-   $$
+$$
+\alpha_k^t = \frac{1 - \tilde{L}_k^t}{\sum_{j \in S^t} (1 - \tilde{L}_j^t)} \quad \text{where} \quad \tilde{L}_k^t = \frac{L_k^t}{\sum_{j \in S^t} L_j^t}
+$$
 
-   - **Bước 1 (Chuẩn hóa L1 bên phải)**: $\tilde{L}_k^t = \frac{L_k^t}{\sum L_j^t} \in (0, 1)$ giúp thang đo loss độc lập giữa các vòng giao tiếp (scale invariance).
-   - **Bước 2 (Nghịch đảo phép trừ & Chuẩn hóa L1 lần 2)**: $1 - \tilde{L}_k^t$ lật ngược lại (loss càng nhỏ thì $1 - \tilde{L}_k^t$ càng lớn).
-   - **Rút gọn mẫu số**: Do $\sum_{j \in S^t} \tilde{L}_j^t = 1$, ta có mẫu số luôn bằng $|S^t| - 1$:
-     $$\alpha_k^t = \frac{1 - \tilde{L}_k^t}{|S^t| - 1}$$
+- **Bước 1 (Chuẩn hóa L1 bên phải)**: $\tilde{L}_k^t = \frac{L_k^t}{\sum L_j^t} \in (0, 1)$ giúp thang đo loss độc lập giữa các vòng giao tiếp (scale invariance).
+- **Bước 2 (Nghịch đảo phép trừ & Chuẩn hóa L1 lần 2)**: $1 - \tilde{L}_k^t$ lật ngược lại (loss càng nhỏ thì $1 - \tilde{L}_k^t$ càng lớn).
+- **Rút gọn mẫu số**: Do $\sum_{j \in S^t} \tilde{L}_j^t = 1$, ta có mẫu số luôn bằng $|S^t| - 1$:
 
-2. **Tổng hợp mô hình toàn cục**:
-   $$w^{t+1} = \sum_{k \in S^t} \alpha_k^t w_k^{t+1}$$
+$$
+\alpha_k^t = \frac{1 - \tilde{L}_k^t}{|S^t| - 1}
+$$
+
+**2. Tổng hợp mô hình toàn cục:**
+
+$$
+w^{t+1} = \sum_{k \in S^t} \alpha_k^t w_k^{t+1}
+$$
 
 ---
 
 ### Điểm mạnh về mặt toán học & Hiệu năng
 
 - **Đạo hàm độ nhạy bị chặn hoàn toàn**:
-  $\left| \frac{\partial \alpha_k^t}{\partial \tilde{L}_k^t} \right| \le \frac{1}{|S^t| - 1} < \infty$  
+
+$$
+\left| \frac{\partial \alpha_k^t}{\partial \tilde{L}_k^t} \right| \le \frac{1}{|S^t| - 1} < \infty
+$$
+
   *(Không bị phân kỳ vô hạn như phép chia của FedAsl khi loss tiến về 0)*.
 - **Tự động triệt tiêu outlier**: Client nào có loss quá lớn/nhiễu ($\tilde{L}_k^t \to 1$) thì $1 - \tilde{L}_k^t \to 0 \implies \alpha_k^t \to 0$ mà không cần đặt ngưỡng heuristic.
 - **Siêu nhẹ**: Phía server chỉ tốn phép tính L1 trên các số float scalar loss, giảm tới 40% FLOPs so với FedMa và 19% so với FedProx.
