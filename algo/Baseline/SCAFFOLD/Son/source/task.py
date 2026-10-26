@@ -1,133 +1,173 @@
-"""Quy trình học máy thuần PyTorch cho bài toán học .
-
-File này định nghĩa:
-1. Kiến trúc mô hình mạng nơ-ron (Net - CNN phân loại ảnh CIFAR-10).
-2. Tải và phân chia tập dữ liệu CIFAR-10 cho các Client (load_data, load_centralized_dataset).
-3. Vòng lặp huấn luyện cục bộ tích hợp hình phạt FedProx Proximal Term (train).
-4. Vòng lặp đánh giá mô hình, tính Loss và Accuracy (test).
-"""
+import datasets
+import math
+from typing import Dict, List, Tuple
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from datasets import load_dataset
-from flwr_datasets import FederatedDataset
-from flwr_datasets.partitioner import DirichletPartitioner
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-#định nghĩa kiến trúc mạng 
-class Net(nn.Module):
-    """Mô hình CNN đơn giản gồm 2 tầng tích chập và 3 tầng kết nối đầy đủ (dành cho CIFAR-10)."""
+datasets.disable_caching()
 
-    def __init__(self):
-        super(Net, self).__init__()
-        # Tầng tích chập 1: 3 kênh đầu vào (ảnh màu RGB) -> 6 kênh đầu ra, kernel size 5x5
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        # Tầng Max Pooling: kích thước 2x2, bước nhảy 2 (giảm kích thước ảnh đi 1/2)
-        self.pool = nn.MaxPool2d(2, 2)
-        # Tầng tích chập 2: 6 kênh vào -> 16 kênh ra, kernel size 5x5
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        # Tầng kết nối đầy đủ (Fully Connected):
-        # Kích thước sau 2 lần pool: 16 kênh * 5 * 5 -> 120 nodes
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        # Tầng đầu ra: 84 -> 10 classes (10 nhãn phân loại của CIFAR-10)
-        self.fc3 = nn.Linear(84, 10)
+
+# ===========================================================================
+# 1. KIẾN TRÚC MÔ HÌNH MẠNG (MODEL ARCHITECTURE - 6 LỚP CNN CHUẨN)
+# ===========================================================================
+
+
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, pool: bool = False):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.pool = nn.MaxPool2d(2, 2) if pool else None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Lan truyền xuôi (Forward pass) qua các tầng mạng."""
-        x = self.pool(F.relu(self.conv1(x)))  # Conv1 -> ReLU -> MaxPool
-        x = self.pool(F.relu(self.conv2(x)))  # Conv2 -> ReLU -> MaxPool
-        x = x.view(-1, 16 * 5 * 5)            # Duỗi thẳng (Flatten) tensor thành vector 1D
-        x = F.relu(self.fc1(x))               # FC1 -> ReLU
-        x = F.relu(self.fc2(x))               # FC2 -> ReLU
-        return self.fc3(x)                    # FC3 -> Logits đầu ra (chưa qua softmax vì CrossEntropyLoss đã tích hợp)        
-        
-#xử lý và chia dữ liệu 
-fds = None  # Biến toàn cục dùng để cache FederatedDataset, tránh tải lại nhiều lần
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        if self.pool is not None:
+            x = self.pool(x)
+        return x
 
-# Chuỗi tiền xử lý ảnh: Chuyển đổi thành Tensor và chuẩn hóa giá trị pixel về khoảng [-1, 1]
+
+class Net(nn.Module):
+    def __init__(self, num_classes: int = 10):
+        super().__init__()
+        self.layer0 = ConvBlock(3, 32, pool=False)      # Layer 0: 32x32 -> 32x32
+        self.layer1 = ConvBlock(32, 64, pool=True)      # Layer 1: 32x32 -> 16x16
+        self.layer2 = ConvBlock(64, 128, pool=False)    # Layer 2: 16x16 -> 16x16
+        self.layer3 = ConvBlock(128, 128, pool=True)    # Layer 3: 16x16 -> 8x8
+        self.layer4 = ConvBlock(128, 256, pool=False)   # Layer 4: 8x8 -> 8x8
+        self.layer5 = ConvBlock(256, 256, pool=True)    # Layer 5: 8x8 -> 4x4
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.classifier = nn.Linear(256, num_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.layer0(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.layer5(x)
+        x = self.pool(x)
+        x = torch.flatten(x, 1)
+        return self.classifier(x)
+
+
+# ===========================================================================
+# 2. TIỀN XỬ LÝ VÀ PHÂN HOẠCH DỮ LIỆU (DATASET PARTITIONING)
+# ===========================================================================
+
 pytorch_transforms = Compose([ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 
 def apply_transforms(batch):
-    """Áp dụng tiền xử lý (Transform) cho từng lô ảnh từ FederatedDataset."""
     batch["img"] = [pytorch_transforms(img) for img in batch["img"]]
     return batch
 
 
-def load_data(partition_id: int, num_partitions: int, batch_size: int):
-    """Tải và phân chia tập dữ liệu CIFAR-10 cho từng Client cụ thể.
-
-    Args:
-        partition_id: Số thứ tự (ID) của Client (0, 1, ..., num_partitions - 1).
-        num_partitions: Tổng số phân vùng (tương ứng tổng số client mô phỏng).
-        batch_size: Kích thước mỗi batch khi nạp vào DataLoader.
-
-    Returns:
-        trainloader, testloader: Hai DataLoader dành cho huấn luyện và kiểm thử tại Client đó.
-    """
-    global fds
-    # Chỉ khởi tạo FederatedDataset một lần duy nhất để tối ưu hiệu năng
-    if fds is None:
-        partitioner = DirichletPartitioner(
-            num_partitions=num_partitions,
-            partition_by="label",
-            alpha=0.5,
-            min_partition_size=10,
-            self_balancing=False,
-            shuffle=True,
-            seed=42,
-        )
-        fds = FederatedDataset(
-            dataset="uoft-cs/cifar10",
-            partitioners={"train": partitioner},
-        )
-        
-    # Nạp đúng phân vùng dữ liệu thuộc về Client này
-    partition = fds.load_partition(partition_id)
-    
-    # Chia phân vùng của Client: 80% để train, 20% để kiểm thử (validate)
-    partition_train_test = partition.train_test_split(test_size=0.2, seed=42)
-    partition_train_test = partition_train_test.with_transform(apply_transforms)
-    
-    # Đóng gói thành PyTorch DataLoader
-    trainloader = DataLoader(
-        partition_train_test["train"], batch_size=batch_size, shuffle=True
-    )
-    testloader = DataLoader(partition_train_test["test"], batch_size=batch_size)
-    return trainloader, testloader
+_cifar_cache: Dict = {}
 
 
-def load_centralized_dataset():
-    """Tải toàn bộ tập kiểm tra (test set) chuẩn của CIFAR-10 để Server đánh giá mô hình toàn cục."""
-    test_dataset = load_dataset("uoft-cs/cifar10", split="test")
-    dataset = test_dataset.with_format("torch").with_transform(apply_transforms)
-    return DataLoader(dataset, batch_size=128)
+def _prepare_cifar_splits(
+    seed: int = 42,
+    alpha: float = 0.5,
+    num_partitions: int = 20,
+    proxy_samples: int = 2000,
+    server_val_samples: int = 3000,
+) -> Dict:
+    cache_key = (seed, alpha, num_partitions, proxy_samples, server_val_samples)
+    if cache_key in _cifar_cache:
+        return _cifar_cache[cache_key]
 
-# định nghĩa hàm train để import vào client
+    raw_ds = load_dataset("uoft-cs/cifar10")
+    train_full = raw_ds["train"].with_format("torch").with_transform(apply_transforms)
+    test_full = raw_ds["test"].with_format("torch").with_transform(apply_transforms)
+
+    # 1. Trích xuất tập proxy U (bỏ qua nhãn) đặt tại Server
+    u_dataset = Subset(train_full, range(0, proxy_samples))
+
+    # 2. Trích xuất tập Validation đặt tại Server
+    val_dataset = Subset(train_full, range(proxy_samples, proxy_samples + server_val_samples))
+
+    # 3. Tập dữ liệu còn lại (45.000 mẫu) phân chia cho các Client theo Dirichlet
+    offset = proxy_samples + server_val_samples
+    labels = np.array(raw_ds["train"]["label"][offset:])
+    num_classes = 10
+    np_rng = np.random.RandomState(seed)
+
+    # Phân chia Dirichlet non-IID giữa các node
+    client_indices: List[List[int]] = [[] for _ in range(num_partitions)]
+    for c in range(num_classes):
+        c_idx = np.where(labels == c)[0]
+        np_rng.shuffle(c_idx)
+        proportions = np_rng.dirichlet(np.repeat(alpha, num_partitions))
+        proportions = proportions / proportions.sum()
+        splits = (np.cumsum(proportions) * len(c_idx)).astype(int)[:-1]
+        c_splits = np.split(c_idx, splits)
+        for i in range(num_partitions):
+            client_indices[i].extend(c_splits[i].tolist())
+
+    # Tạo DataLoader riêng cho từng client (chia 80% train, 20% validation cục bộ hoàn toàn in-memory)
+    client_partitions = []
+    for i in range(num_partitions):
+        c_idx = client_indices[i]
+        split_point = int(len(c_idx) * 0.8)
+        train_idx = [idx + offset for idx in c_idx[:split_point]]
+        val_idx = [idx + offset for idx in c_idx[split_point:]]
+        client_partitions.append({
+            "train": Subset(train_full, train_idx),
+            "test": Subset(train_full, val_idx),
+        })
+
+    result = {
+        "proxy_u": u_dataset,
+        "server_val": val_dataset,
+        "client_partitions": client_partitions,
+        "centralized_test": test_full,
+    }
+    _cifar_cache[cache_key] = result
+    return result
+
+
+def load_data(
+    partition_id: int,
+    num_partitions: int,
+    batch_size: int,
+    alpha: float = 0.5,
+    seed: int = 42,
+) -> Tuple[DataLoader, DataLoader]:
+    splits = _prepare_cifar_splits(seed=seed, alpha=alpha, num_partitions=num_partitions)
+    client_part = splits["client_partitions"][partition_id]
+    trainloader = DataLoader(client_part["train"], batch_size=batch_size, shuffle=True)
+    valloader = DataLoader(client_part["test"], batch_size=batch_size, shuffle=False)
+    return trainloader, valloader
+
+
+def load_centralized_dataset(batch_size: int = 128) -> DataLoader:
+    splits = _prepare_cifar_splits()
+    return DataLoader(splits["centralized_test"], batch_size=batch_size, shuffle=False)
+
+
+# ===========================================================================
+# 3. VÒNG LẶP HUẤN LUYỆN VÀ KIỂM THỬ SCAFFOLD
+# ===========================================================================
+
+
 def train(
     net: nn.Module,
     trainloader: DataLoader,
-    max_steps: int,                      # Số bước s_k thực tế cần chạy
+    max_steps: int,
     lr: float,
     device: torch.device,
-    c_k: dict[str, torch.Tensor],        # Nhận c_k của client từ client_app
-    c_global: dict[str, torch.Tensor],   # Nhận c_global của server từ client_app
+    c_k: Dict[str, torch.Tensor],
+    c_global: Dict[str, torch.Tensor],
 ) -> float:
-    """
-    Công thức hàm Loss của FedNova :
-        tại mỗi vòng lặp ,nhận vào c_global từ đầu vòng và lấy c+k trong context từ vòng trước
-        để cập nhật trọng số 
-        c + (1/T) * sum(c_k - c)
-        khi đó gradient hàm loss = gradient thô của loss trung bình trên toàn mẫu trong batch + (c_k - c) / N
-        rồi w_mới = w_cũ - alpha * gradient loss
-
-    Returns:
-        float: Giá trị Loss huấn luyện trung bình.
-    """
     criterion = nn.CrossEntropyLoss()
-    # Dùng SGD thuần cho batch loss gradient
     optimizer = torch.optim.SGD(net.parameters(), lr=lr)
     net.train()
     total_loss = 0.0
@@ -143,53 +183,44 @@ def train(
             outputs = net(images)
             loss = criterion(outputs, labels)
             loss.backward()
+
             # Hiệu chỉnh gradient của SCAFFOLD: g - c_k + c_global
             with torch.no_grad():
                 for name, param in net.named_parameters():
-                    if param.grad is not None:
+                    if param.grad is not None and name in c_global and name in c_k:
                         grad_correction = c_global[name].to(device) - c_k[name].to(device)
                         param.grad.data.add_(grad_correction)
+
             optimizer.step()
             total_loss += loss.item()
             total_steps += 1
+
     return total_loss / total_steps if total_steps > 0 else 0.0
 
 
-# evaluate với tập test
-def test(net: nn.Module, testloader: DataLoader, device: torch.device) -> tuple[float, float]:
-    """Đánh giá chất lượng mô hình trên tập kiểm thử (tính Loss và Accuracy).
-
-    Args:
-        net: Mô hình cần đánh giá.
-        testloader: DataLoader chứa dữ liệu kiểm thử.
-        device: Thiết bị chạy (GPU hoặc CPU).
-
-    Returns:
-        tuple[float, float]: (avg_loss, accuracy).
-    """
+def test(
+    net: nn.Module,
+    testloader: DataLoader,
+    device: torch.device,
+) -> Tuple[float, float]:
     net.to(device)
-    net.eval()  # Chuyển sang chế độ evaluation (tắt dropout, cố định batchnorm nếu có)
-    criterion = torch.nn.CrossEntropyLoss()
+    net.eval()
+    criterion = nn.CrossEntropyLoss()
     correct, total_loss = 0, 0.0
+    num_samples = 0
+    num_batches = 0
 
-    with torch.no_grad():  # Không tính toán gradient trong quá trình đánh giá để tiết kiệm bộ nhớ
+    with torch.no_grad():
         for batch in testloader:
             images = batch["img"].to(device)
             labels = batch["label"].to(device)
             outputs = net(images)
-
-            # Cộng dồn loss
             total_loss += criterion(outputs, labels).item()
-
-            # Lấy chỉ số có xác suất cao nhất làm nhãn dự đoán và so sánh với nhãn thực tế
-            predicted = torch.max(outputs.data, 1)[1]
-            correct += (predicted == labels).sum().item()
-
-    # Tính độ chính xác trung bình và loss trung bình
-    num_samples = len(testloader.dataset)
-    num_batches = len(testloader)
+            preds = torch.max(outputs.data, 1)[1]
+            correct += (preds == labels).sum().item()
+            num_samples += labels.size(0)
+            num_batches += 1
 
     accuracy = float(correct / num_samples) if num_samples > 0 else 0.0
     avg_loss = float(total_loss / num_batches) if num_batches > 0 else 0.0
-
     return avg_loss, accuracy

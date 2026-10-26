@@ -115,8 +115,9 @@ def main(grid: Grid, context: Context) -> None:
     # 3. Đọc tốc độ học learning rate (mặc định 0.01)
     lr: float = context.run_config.get("learning-rate", 0.01)
 
-    # 4. Đọc tổng số client trong mạng mô phỏng từ số partition dữ liệu (mặc định 10)
-    num_total_clients: int = context.run_config.get("num-partitions", 10)
+    # 4. Đọc tổng số client trong mạng mô phỏng từ số partition dữ liệu (mặc định 20)
+    num_total_clients: int = context.run_config.get("num-partitions", 20)
+    fraction_train: float = context.run_config.get("fraction-train", 0.5)
 
     # 5. Khởi tạo kiến trúc mô hình toàn cục ban đầu tại Server
     global_model = Net()    #Net được cấu hình tại task.py
@@ -127,8 +128,8 @@ def main(grid: Grid, context: Context) -> None:
     # 7. Khởi tạo chiến lược tổng hợp tùy chỉnh FedNovaMOON
     strategy = FedNovaMOON(
         num_total_clients=num_total_clients,
-        fraction_train=1.0,                    # Tỷ lệ client tham gia train mỗi round (1.0 = toàn bộ)
-        fraction_evaluate=fraction_evaluate,    # Tỷ lệ client tham gia evaluate mỗi round
+        fraction_train=fraction_train,
+        fraction_evaluate=fraction_evaluate,
         efficient_step_length=None,            # None để tự động tính tau_eff theo dữ liệu thực tế từng round
     )
 
@@ -166,6 +167,7 @@ def global_evaluate(server_round: int, arrays: ArrayRecord) -> MetricRecord:
 
     # 5. Chạy hàm test để tính toán độ mất mát (loss) và độ chính xác (accuracy)
     test_loss, test_acc = test(model, test_dataloader, device)
+    print(f"[Server Round {server_round}] Test Acc: {test_acc:.4f} | Test Loss: {test_loss:.4f}")
 
     # 6. Đóng gói kết quả thành MetricRecord trả về cho Flower ghi nhận log
     return MetricRecord({"accuracy": float(test_acc), "loss": float(test_loss)})

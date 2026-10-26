@@ -3,15 +3,15 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "quickstart-pytorch"
-version = "1.1.13"
-description = "Federated Learning with PyTorch and Flower (Quickstart Example)"
+name = "baseline-fedprox-son"
+version = "1.0.0"
+description = "Baseline FedProx on CIFAR-10 (Aligned with Proposed Scenario)"
 license = {file = "LICENSE"}
 dependencies = [
     "flwr[simulation]>=1.36.0",
     "flwr-datasets[vision]>=0.6.1",
-    "torch==2.10.0",
-    "torchvision==0.25.0",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -22,15 +22,36 @@ publisher = "flwrlabs"
 fab-format-version = 1
 flwr-version-target = "1.36.0"
 
+[tool.uv.sources]
+torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
 [tool.flwr.app.components]
 serverapp = "source.server_app:app"
 clientapp = "source.client_app:app"
 
+[tool.flwr.federations]
+default = "local-simulation"
+
+[tool.flwr.federations.local-simulation]
+options.num-supernodes = 20
+options.backend.client-resources.num-cpus = 2
+options.backend.client-resources.num-gpus = 0.5
+
 [tool.flwr.app.config]
-num-server-rounds = 30
+num-server-rounds = 50
+num-partitions = 20
+fraction-train = 0.5
 fraction-evaluate = 1.0
-local-epochs = 3
-learning-rate = 0.01
-batch-size = 32
+local-epochs = 5
+learning-rate = 0.05
+batch-size = 64
+dataset-alpha = 0.5
+seed = 42
 save-model = false
-mu = 0.01   # hệ số phạt của fedprox
+mu = 0.01

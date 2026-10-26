@@ -4,3 +4,17 @@ LICENSE
 __pycache__
 *.cpython-*.pyc
 /doc.md
+*:Zone.Identifier*
+/README.md
+myalgo
+/myAlgo.md
+/activate.txt
+
+# Untracked algorithms
+algo/A2_Label_Data_distribution/FedCon/
+algo/A3_Local_Model_Quality/FedLBW/
+algo/A3_Local_Model_Quality/FedAsl/
+algo/A4_Update_gradient_model_conflict/FedCDA/
+algo/A5_Contribution_Learned_Server_data/FedDRL/
+algo/A5_Contribution_Learned_Server_data/FLTrust/
+algo/B_LLM_Agentic_Aggregation_Orchestration/

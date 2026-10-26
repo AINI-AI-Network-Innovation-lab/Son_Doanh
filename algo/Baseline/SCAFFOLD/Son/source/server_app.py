@@ -111,15 +111,15 @@ def main(grid: Grid, context: Context) -> None:
     num_rounds: int = context.run_config["num-server-rounds"]
     lr: float = context.run_config["learning-rate"]
     
-    # Lấy tổng số client trong mạng (mặc định lấy từ partition hoặc run_config)
-    num_total_clients: int = context.run_config.get("num-partitions", 10)
+    fraction_train: float = context.run_config.get("fraction-train", 0.5)
+    num_total_clients: int = context.run_config.get("num-partitions", 20)
     # 1. Khởi tạo mô hình ban đầu
     global_model = Net()
     arrays = ArrayRecord(global_model.state_dict())
     # 2. Khởi tạo chiến lược tùy chỉnh
     strategy = FedNovaScaffold(
         num_total_clients=num_total_clients,
-        fraction_train=1.0,               # Tỷ lệ client tham gia train mỗi round
+        fraction_train=fraction_train,
         fraction_evaluate=fraction_evaluate,
         efficient_step_length=None,       # None = tự động tính tau_eff theo FedNova
     )
@@ -143,4 +143,5 @@ def global_evaluate(server_round: int, arrays: ArrayRecord) -> MetricRecord:
     model.to(device)
     test_dataloader = load_centralized_dataset()
     test_loss, test_acc = test(model, test_dataloader, device)
+    print(f"[Server Round {server_round}] Test Acc: {test_acc:.4f} | Test Loss: {test_loss:.4f}")
     return MetricRecord({"accuracy": float(test_acc), "loss": float(test_loss)})
