@@ -14,27 +14,36 @@
 
 ### Các công thức chính
 
-1. **Client vector & Global vector**:
-   - $\tau_k^t = w_k^t - w_g^t$: Client vector, độ lệch giữa trọng số local $w_k^t$ và global $w_g^t$ ở round $t$.
-   - $\tau_g^t = \sum_{k=1}^K \lambda_k^t \tau_k^t$: Cập nhật global vector, với $\lambda_k^t$ là trọng số của client $k$.
+**1. Client vector & Global vector:**
 
-2. **Hàm mục tiêu tối ưu trọng số tại Server**:
-   Server giải bài toán tối ưu tìm vector trọng số $\boldsymbol{\lambda}^t$ ($\sum_{k=1}^K \lambda_k = 1, \lambda_k \ge 0$):
+- $\tau_k^t = w_k^t - w_g^t$: Client vector, độ lệch giữa trọng số local $w_k^t$ và global $w_g^t$ ở round $t$.
+- $\tau_g^t = \sum_{k=1}^K \lambda_k^t \tau_k^t$: Cập nhật global vector, với $\lambda_k^t$ là trọng số của client $k$.
 
-   $$
-   \boldsymbol{\lambda}^t = \arg\min_{\boldsymbol{\lambda}} \sum_{k=1}^K \lambda_k \|\tau_k^t - \tau_g^t\|_2 + d\left( \sum_{k=1}^K \lambda_k w_k^t, \; w_g^t \right)
-   $$
+**2. Hàm mục tiêu tối ưu trọng số tại Server:**
 
-   - **Biểu thức đầu ($\sum \lambda_k \|\tau_k^t - \tau_g^t\|_2$)**: Khoảng cách của global vector so với client vector, nhân với độ ảnh hưởng của mỗi client $\to$ Client nào có hướng cập nhật gần với hướng chung sẽ được gán trọng số cao hơn, client lệch hướng bị phạt giảm trọng số.
-   - **Biểu thức sau ($d(\sum \lambda_k w_k^t, w_g^t)$)**: Thành phần regularization giữ ổn định, tránh việc mô hình sau cập nhật bị trôi lệch quá xa so với global model cũ.
-   - **Hàm khoảng cách**: $d(a, b) = 1 - \text{cosine\_similarity}(a, b)$.
+Server giải bài toán tối ưu tìm vector trọng số $\boldsymbol{\lambda}^t$ ($\sum_{k=1}^K \lambda_k = 1, \lambda_k \ge 0$):
 
-3. **Tổng hợp mô hình toàn cục**:
-   $$w_g^{t+1} = \sum_{k=1}^K \lambda_k^t w_k^t$$
+$$
+\boldsymbol{\lambda}^t = \arg\min_{\boldsymbol{\lambda}} \sum_{k=1}^K \lambda_k \|\tau_k^t - \tau_g^t\|_2 + d\left( \sum_{k=1}^K \lambda_k w_k^t, \; w_g^t \right)
+$$
 
-4. **Biến thể tầng mạng (FedAWA-L)**:
-   Tối ưu riêng từng bộ trọng số $\boldsymbol{\lambda}_l^t$ cho từng layer $l$ trong mạng:
-   $$w_{gl}^{t+1} = \sum_{k=1}^K \lambda_{kl}^t w_{kl}^t$$
+- **Biểu thức đầu ($\sum \lambda_k \|\tau_k^t - \tau_g^t\|_2$)**: Khoảng cách của global vector so với client vector, nhân với độ ảnh hưởng của mỗi client $\to$ Client nào có hướng cập nhật gần với hướng chung sẽ được gán trọng số cao hơn, client lệch hướng bị phạt giảm trọng số.
+- **Biểu thức sau ($d(\sum \lambda_k w_k^t, w_g^t)$)**: Thành phần regularization giữ ổn định, tránh việc mô hình sau cập nhật bị trôi lệch quá xa so với global model cũ.
+- **Hàm khoảng cách**: $d(a, b) = 1 - \text{cosine\_similarity}(a, b)$.
+
+**3. Tổng hợp mô hình toàn cục:**
+
+$$
+w_g^{t+1} = \sum_{k=1}^K \lambda_k^t w_k^t
+$$
+
+**4. Biến thể tầng mạng (FedAWA-L):**
+
+Tối ưu riêng từng bộ trọng số $\boldsymbol{\lambda}_l^t$ cho từng layer $l$ trong mạng:
+
+$$
+w_{gl}^{t+1} = \sum_{k=1}^K \lambda_{kl}^t w_{kl}^t
+$$
 
 ---
 
