@@ -60,7 +60,7 @@ $$
 g_i = \Vert w_i - w_i^{prev} \Vert_2
 $$
 
-Trọng số thô của client i được tính bằng cách kết hợp độ dời $g_i$ và độ tương đồng trung bình của client i với m-1 client còn lại 
+Trọng số thô của client i được tính bằng cách kết hợp độ dời $g_i$ và độ tương đồng trung bình của client i với m-1 client còn lại
 
 $$
 \theta_i = \exp(-g_i) \left( 1 + \frac{\sum_{j \neq i} S_{ij}}{m - 1} \right)
@@ -74,14 +74,16 @@ $$
 \hat{\theta}_i = \frac{\theta_i}{\sum_{k=1}^m \theta_k}
 $$
 
-Áp dụng softmax để làm mượt phân bổ trọng số 
+Áp dụng softmax để làm mượt phân bổ trọng số
 
 $$
 \theta_i^{final} = \text{softmax}(\hat{\theta})_i = \frac{e^{\hat{\theta}_i}}{\sum_{j=1}^m e^{\hat{\theta}_j}}
 $$
 
-Và tổng hợp mô hình toàn cục mới : 
+Và tổng hợp mô hình toàn cục mới :
 
 $$
 w^{global} = \sum_{i=1}^m \theta_i^{final} w_i
 $$
+
+Lý do chọn cơ chế đánh giá mô hình và phân bổ trọng số như vậy : *Nếu hai mô hình cục bộ cùng huấn luyện trên các tập dữ liệu bị lệch (skewed/Non-IID) khác nhau nhưng sau khi học lại hội tụ về cùng một cấu trúc tham số tương đồng nhau, thì phần thông tin giao thoa đó chính là tri thức cốt lõi mang tính khái quát hóa (generalization) cao nhất cho bài toán chung*<sup></sup>. Do đó, **độ tương đồng trung bình của mô hình $w_i$ với tập thể** được dùng làm thước đo cho **giá trị đóng góp mặt tri thức của client**<sup></sup>, kết hợp cùng **hệ số suy giảm tiệm cận $\exp(-g_i)$** đóng vai trò như bộ giảm chấn giúp kìm hãm các mô hình biến động quá khích<sup></sup>. Vì mô hình toàn cục là tổ hợp lồi từ tất cả mô hình cục bộ ($w^{global} = \sum \theta_i^{final} w_i$)<sup></sup>, nên một client vừa có mô hình $w_i$ đồng thuận cao với đại đa số các client khác, vừa có độ dời $g_i$ nhỏ quanh điểm tối ưu (tức nhận trọng số $\theta_i^{final}$ lớn) thì cũng chính là client đang giữ cho mô hình toàn cục hội tụ nhanh và ổn định nhất<sup></sup>.
