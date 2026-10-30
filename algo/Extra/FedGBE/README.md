@@ -81,3 +81,7 @@ w^{global, t+1} = \sum_{j=1}^K \theta_j^t w_j^{t+1}
 $$
 
 Nhược điểm : yêu cầu hàm mất mát phải bị chặn trên ($\mathcal{L}\le M$)<sup></sup>. Điều này gây khó khăn khi áp dụng trực tiếp với hàm Cross-Entropy tiêu chuẩn vốn không bị chặn trên, đòi hỏi phải sử dụng các hàm loss thay thế (như JSD loss) hoặc cơ chế cắt ngọn.
+
+Nếu một client huấn luyện quá đà dẫn đến training loss và phương sai sụt giảm gần như bằng 0, công thức cận của FedGBE có thể tạo ra độ chênh lệch cận giả tạo rất hẹp, vô tình đánh giá đó là mô hình chuẩn mực và gán trọng số ưu tiên tối đa cho một mô hình đang bị overfit cục bộ
+
+Để tính toán kỳ vọng , phương sai và quét qua hàng loạt mốc khoảng cách Hellinger nhằm ra được cận trên/dưới, mỗi client phải thực hiện thêm các bước tính toán phức tạp ngay trên tập dữ liệu cục bộ của mình ở mỗi vòng giao tiếp<sup></sup>.
